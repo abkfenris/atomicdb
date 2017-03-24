@@ -32,7 +32,10 @@ spec:
     spec:
       containers:
       - name: patroni
-        image: jberkus/patroni:5.7
+        image: abkfenris/atomicdb
+        imagePullPolicy: Always
+        args:
+        - postgres
         env:
         - name: CLUSTERNAME
           value: patroni01

@@ -5,7 +5,9 @@ metadata:
   labels:
     component: patroni-patroni
 spec:
+  type: NodePort
   selector:
     component: patroni-patroni
+    patroni-role: replica
   ports:
   - port: 5432

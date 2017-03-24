@@ -2,12 +2,23 @@
 # patroni nodes.  It is designed to use kubernetes to support
 # multiple nodes
 
-FROM fedora:24
+FROM mdillon/postgis:9.6
+
+RUN apt-get update && apt-get install -y \
+    gettext \
+    python3 \
+    python3-pip \
+    libpq-dev \
+    libsnappy-dev \
+    python3-yaml \
+    python3-psycopg2 \
+    python3-cryptography
+
+COPY ./requirements.txt /opt/requirements.txt
+RUN pip3 install -r /opt/requirements.txt
 
 ADD ./scripts/ /scripts/
 ADD ./patroni/ /patroni/
-
-RUN /scripts/package_install.sh
 
 EXPOSE 8008 5432
 

@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pghoard-set
+  labels:
+    component: pghoard-set
+spec:
+  selector: 
+    component: pghoard
+  ports:
+  - port: 16000
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pghoard
+  labels:
+    component: pghoard
+spec:
+  type: NodePort
+  selector:
+    component: pghoard
+  ports:
+  - port: 16000
+
+---
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: pghoard
+  labels:
+    component: pghoard
+spec:
+  serviceName: pghoard-set
+  replicas: 1
+  template:
+    metadata: 
+      name: pghoard
+      labels:
+        component: pghoard
+      annotations:
+        pod.alpha.kubernetes.io/initialized: "true"
+    spec:
+      containers:
+      - name: pghoard
+        image: abkfenris/atomicdb
+        command: ["gosu", "postgres", "pghoard", "--config", "/opt/pghoard/pghoard.json"]
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 16000
+        volumeMounts:
+        - name: pghoard-config
+          mountPath: /opt/pghoard
+          readOnly: true
+        - name: pghoard-secret
+          mountPath: /tmp/pghoard
+          readOnly: true
+        - name: postgres-home
+          mountPath: /home/postgres
+      volumes:
+      - name: pghoard-config
+        configMap:
+          name: patroni-pghoard
+          items:
+          - key: pghoard.json
+            path: pghoard.json
+          - key: patroni.template.yml
+            path: patroni.template.yml
+      - name: pghoard-secret
+        secret:
+          secretName: pghoard-google
+      - name: postgres-home
+        emptyDir: {}

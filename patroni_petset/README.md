@@ -34,8 +34,20 @@ to replace the actual password; the ones given in the file are "atomic" for all 
 kubectl create -f sec-patroni.yaml
 ```
 
+Create the pghoard and patroni configs and secrets. Google key for service account which also needs to explicitly be given permission to write to the bucket.
+
+```
+kubectl create -f pghoard-patroni-config.yaml -f pghoard-secret.yaml
+```
+
+Start the pghoard statefulset
+
+```
+kubectl create -f pghoard.yaml
+```
+
 Third, create the PostgreSQL PetSet.  Depending on your setup, you can
-play with increasing the number of replicas:
+play with increasing the number of replicas: It also probably doesn't work right now.
 
 ```
 kubectl create -f ps-patroni-ephemeral

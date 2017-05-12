@@ -12,10 +12,12 @@ RUN apt-get update && apt-get install -y \
     libsnappy-dev \
     python3-yaml \
     python3-psycopg2 \
-    python3-cryptography
+    python3-cryptography \
+    git
 
 COPY ./requirements.txt /opt/requirements.txt
 RUN pip3 install -r /opt/requirements.txt
+#RUN pip3 install git+https://github.com/abkfenris/patroni@6910be24304637026ffbdbb76bdcc4215c1426a9
 
 ADD ./scripts/ /scripts/
 ADD ./patroni/ /patroni/

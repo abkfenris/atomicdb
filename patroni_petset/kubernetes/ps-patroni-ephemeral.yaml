@@ -29,6 +29,35 @@ spec:
         component: patroni-patroni
       annotations:
         pod.alpha.kubernetes.io/initialized: "true"
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "restore",
+            "image": "abkfenris/atomicdb",
+            "command": ["/bin/sh", "-c"],
+            "args": ["gosu postgres pghoard_restore get-basebackup --config /opt/pghoard/pghoard.json --target-dir /pgdata/data --restore-to-master; envsubst < /opt/pghoard/recovery.conf > /pgdata/data/recovery.conf; cat /pgdata/data/recovery.conf; gosu postgres pg_ctl start -D /pgdata/data; sleep 1"],
+            "volumeMounts": [
+              {
+                "name": "pgdata",
+                "mountPath": "/pgdata"
+              },
+              {
+                "name": "patroni-config",
+                "mountPath": "/tmp/patroni",
+                "readOnly": true
+              },
+              {
+                "name": "pghoard-config",
+                "mountPath": "/opt/pghoard",
+                "readOnly": true
+              },
+              {
+                "name": "pghoard-secret",
+                "mountPath": "/tmp/pghoard",
+                "readOnly": true
+              }
+            ]
+          }
+        ]'
     spec:
       containers:
       - name: patroni
@@ -56,6 +85,8 @@ spec:
             secretKeyRef:
               name: patroni
               key: password-standby
+        - name: PATRONI_TEMPLATE_PATH
+          value: /opt/pghoard/patroni.template.yml
         - name: POD_NS
           valueFrom:
             fieldRef:
@@ -86,9 +117,30 @@ spec:
         - mountPath: /tmp/patroni
           name: patroni-config
           readOnly: true
+        - mountPath: /opt/pghoard
+          name: pghoard-config
+          readOnly: true
+        - mountPath: /tmp/pghoard
+          name: pghoard-secret
+          readOnly: true
       volumes:
       - name: patroni-config
         secret:
           secretName: patroni
       - name: pgdata
         emptyDir: {}
+      - name: pghoard-config
+        configMap:
+          name: patroni-pghoard
+          items:
+          - key: pghoard.json
+            path: pghoard.json
+          - key: patroni.template.yml
+            path: patroni.template.yml
+          - key: pghoard_restore.py
+            path: pghoard_restore.py
+          - key: recovery.conf
+            path: recovery.conf
+      - name: pghoard-secret
+        secret:
+          secretName: pghoard-google

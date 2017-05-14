@@ -29,37 +29,32 @@ spec:
         component: patroni-patroni
       annotations:
         pod.alpha.kubernetes.io/initialized: "true"
-        pod.beta.kubernetes.io/init-containers: '[
-          {
-            "name": "restore",
-            "image": "abkfenris/atomicdb",
-            "command": ["/bin/sh", "-c"],
-            "args": ["gosu postgres pghoard_restore get-basebackup --config /opt/pghoard/pghoard.json --target-dir /pgdata/data --restore-to-master; envsubst < /opt/pghoard/recovery.conf > /pgdata/data/recovery.conf; cat /pgdata/data/recovery.conf; gosu postgres pg_ctl start -D /pgdata/data; sleep 1"],
-            "volumeMounts": [
-              {
-                "name": "pgdata",
-                "mountPath": "/pgdata"
-              },
-              {
-                "name": "patroni-config",
-                "mountPath": "/tmp/patroni",
-                "readOnly": true
-              },
-              {
-                "name": "pghoard-config",
-                "mountPath": "/opt/pghoard",
-                "readOnly": true
-              },
-              {
-                "name": "pghoard-secret",
-                "mountPath": "/tmp/pghoard",
-                "readOnly": true
-              }
-            ]
-          }
-        ]'
     spec:
       containers:
+      - name: backup
+        image: abkfenris/atomicdb
+        args: 
+        - backup
+        imagePullPolicy: Always
+        env:
+        - name: WALE_ENVDIR
+          value: /opt/wale
+        - name: PG_DATA
+          value: /pgdata/data
+        - name: WALE_CRON_TIMING
+          value: '*/15 * * * *' # backup every 15 min
+        volumeMounts:
+        - name: pgdata
+          mountPath: /pgdata
+        - mountPath: /tmp/patroni
+          name: patroni-config
+          readOnly: true
+        - mountPath: /tmp/wale
+          name: wale-secret
+          readOnly: true
+        - mountPath: /opt/wale
+          name: wale-config
+          readOnly: true
       - name: patroni
         image: abkfenris/atomicdb
         imagePullPolicy: Always
@@ -123,10 +118,19 @@ spec:
         - mountPath: /tmp/pghoard
           name: pghoard-secret
           readOnly: true
+        - mountPath: /tmp/wale
+          name: wale-secret
+          readOnly: true
+        - mountPath: /opt/wale
+          name: wale-config
+          readOnly: true
       volumes:
       - name: patroni-config
         secret:
           secretName: patroni
+      - name: wale-config
+        configMap:
+          name: wale-config
       - name: pgdata
         emptyDir: {}
       - name: pghoard-config
@@ -144,3 +148,6 @@ spec:
       - name: pghoard-secret
         secret:
           secretName: pghoard-google
+      - name: wale-secret
+        secret:
+          secretName: patroni-wale

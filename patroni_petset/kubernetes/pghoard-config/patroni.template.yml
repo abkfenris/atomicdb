@@ -13,19 +13,20 @@ bootstrap:
         wal_keep_segments: 8
         wal_level: hot_standby
         wal_log_hints: 'on'
-      #  archive_mode: 'on'
+        archive_mode: 'on'
         archive_timeout: 300s
-      #  archive_command: pghoard_postgres_command --mode archive --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f
-      recovery_conf:
-        restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
-        recovery_target_timeline: latest
-        recovery_target_action: promote
+        archive_command: envdir /opt/wale/ wal-e wal-push %p
+      #recovery_conf:
+      #  restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
+      #  recovery_target_timeline: latest
+      #  recovery_target_action: promote
       use_pg_rewind: true
       use_slots: true
     retry_timeout: 5
     ttl: 15
   initdb:
   - encoding: UTF8
+  - data-checksums
   pg_hba:
   - host replication standby 0.0.0.0/0 md5
   - host    all all 0.0.0.0/0 md5
@@ -53,10 +54,10 @@ postgresql:
     on_start: /scripts/callback_role.py
     on_stop: /scripts/callback_role.py
   connect_address: ${LOOKUP}:5432
-  recovery_conf:
-    restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
-    recovery_target_timeline: latest
-    recovery_target_action: promote
+  #recovery_conf:
+  #  restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
+  #  recovery_target_timeline: latest
+  #  recovery_target_action: promote
   create_replica_method:
   #- pghoard
   - basebackup

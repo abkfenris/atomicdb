@@ -1,9 +1,12 @@
 config:
 	kubectl create configmap patroni-pghoard --from-file=pghoard-config/patroni.template.yml --from-file=pghoard-config/pghoard_restore.py --from-file=pghoard-config/pghoard.json --from-file=pghoard-config/recovery.conf
+	kubectl create secret generic patroni-wale --from-file=wal-e-config/google-wale.json
+	kubectl create -f wale-config.yaml
 
 delete:
-	kubectl delete -f pghoard.yaml -f ps-patroni-ephemeral.yaml -f etcd.yaml
-	kubectl delete configmap patroni-pghoard
+	kubectl delete -f ps-patroni-ephemeral.yaml -f etcd.yaml
+	kubectl delete configmap patroni-pghoard wale-config
+	kubectl delete secret patroni-wale
 	kubectl delete -f sec-patroni.yaml
 
 sets: 
@@ -19,7 +22,7 @@ patroni:
 	kubectl create -f sec-patroni.yaml
 	kubectl create -f ps-patroni-ephemeral.yaml
 
-all: config pghoard etcd patroni
+all: config etcd patroni
 
 services:
 	kubectl create -f svc-patroni-master

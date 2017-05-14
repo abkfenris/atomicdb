@@ -19,6 +19,7 @@ bootstrap:
     ttl: 15
   initdb:
   - encoding: UTF8
+  - data-checksums
   pg_hba:
   - host replication standby 0.0.0.0/0 md5
   - host    all all 0.0.0.0/0 md5

@@ -29,6 +29,45 @@ spec:
         component: patroni-patroni
       annotations:
         pod.alpha.kubernetes.io/initialized: "true"
+        pod.beta.kubernetes.io/init-containers: '[
+          {
+            "name": "restore",
+            "image": "abkfenris/atomicdb",
+            "imagePullPolicy": "Always",
+            "args": ["restore"],
+            "env": [
+              {
+                "name": "WALE_ENVDIR",
+                "value": "/opt/wale"
+              },
+              {
+                "name": "PG_DATA",
+                "value": "/pgdata/data"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "pgdata",
+                "mountPath": "/pgdata"
+              },
+              {
+                "name": "patroni-config",
+                "mountPath": "/tmp/patroni",
+                "readOnly": true
+              },
+              {
+                "name": "wale-secret",
+                "mountPath": "/tmp/wale",
+                "readOnly": true
+              },
+              {
+                "name": "wale-config",
+                "mountPath": "/opt/wale",
+                "readOnly": true
+              }
+            ]
+          }
+        ]'
     spec:
       containers:
       - name: backup

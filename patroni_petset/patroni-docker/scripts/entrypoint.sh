@@ -87,7 +87,6 @@ elif [ "$1" = 'restore' ]; then
 	echo 'Wal-e base restore completed. Attmepting WAL restore'
 	cat > ${PG_DATA}/recovery.conf <<-EOCONF
 		restore_command = 'envdir $WALE_ENVDIR wal-e wal-fetch --prefetch=16 %f %p'
-		recovery_target_action = 'shutdown'
 		recovery_target_timeline = latest
 	EOCONF
 
@@ -117,10 +116,18 @@ elif [ "$1" = 'restore' ]; then
 	chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
 	
 
-	gosu postgres pg_ctl -w start -D ${PG_DATA}
+	gosu postgres pg_ctl start -D ${PG_DATA}
 
-	rm ${PG_DATA}/recovery.conf
-	echo 'Removed recovery.conf. ready for patroni to take over'
+	while [[ -f ${PG_DATA}/recovery.conf ]]; do
+		echo 'Waiting for recovery to complete'
+		sleep 15
+	done
+
+	echo 'Recovery should be complete. Shutting down postgres'
+
+	gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
+	
+	echo 'ready for patroni to take over'
 
 else
 	exec "$@"

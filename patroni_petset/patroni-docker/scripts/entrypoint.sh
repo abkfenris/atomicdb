@@ -86,13 +86,38 @@ elif [ "$1" = 'restore' ]; then
 	
 	echo 'Wal-e base restore completed. Attmepting WAL restore'
 	cat > ${PG_DATA}/recovery.conf <<-EOCONF
-		restore_command = 'envdir $WALE_ENVDIR wal-e wal-fetch %f %p'
-		recovery_target_timeline = 'latest'
+		restore_command = 'envdir $WALE_ENVDIR wal-e wal-fetch --prefetch=16 %f %p'
 		recovery_target_action = 'shutdown'
+		recovery_target_timeline = latest
 	EOCONF
 
+	echo 'recovery.conf file written'
+
 	chown postgres:postgres ${PG_DATA}/recovery.conf
-	pg_ctl start ${PG_DATA}
+	ls $PG_DATA
+
+
+	#echo '\n # postgresql.auto.conf \n'
+	#cat ${PG_DATA}/postgresql.auto.conf
+
+	#echo '\n # postgresql.base.conf \n'
+	#cat ${PG_DATA}/postgresql.base.conf
+
+	#echo '\n # postgresql.base.conf.backup \n'
+	#cat ${PG_DATA}/postgresql.base.conf.backup
+
+	#echo '\n # postgresql.conf.backup \n'
+	#cat ${PG_DATA}/postgresql.conf.backup
+
+	#echo '\n\n'
+
+	cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
+	cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
+
+	chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
+	
+
+	gosu postgres pg_ctl -w start -D ${PG_DATA}
 
 	rm ${PG_DATA}/recovery.conf
 	echo 'Removed recovery.conf. ready for patroni to take over'

@@ -1,9 +1,24 @@
 #!/bin/bash
 set -e
 
+#show all commands
+if [ "$VERBOSE_ENTRYPOINT" ]; then
+	set -x 
+fi
+
 if [ "${1:0:1}" = '-' ]; then
 	set -- postgres "$@"
 fi
+
+recovery_conf () {
+	echo 'Writing recovery.conf'
+	#  --prefetch=16
+	cat > ${PG_DATA}/recovery.conf <<-EOCONF
+		restore_command = 'envdir $WALE_ENVDIR wal-e wal-fetch %f %p'
+		recovery_target_timeline = latest
+		recovery_target_action = 'pause'
+	EOCONF
+}
 
 if [ "$1" = 'postgres' -o "$1" = 'patroni' ]; then
 	#set some derived variables
@@ -82,52 +97,65 @@ elif [ "$1" = 'backup' ]; then
 
 elif [ "$1" = 'restore' ]; then
 	echo 'Attempting to restore basebackup with WAL-E'
-	gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST
+	if [ "$IGNORE_WAL_BASEBACKUP_MISSING" ]; then
+		echo 'IGNORE_WAL_BASEBACKUP_MISSING found, checking for basebackup but will continue if missing'
+		echo 'Remove IGNORE_WAL_BASEBACKUP_MISSING to require restore to be successful'
+		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST || true
+	else
+		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST
+	fi
 	
-	echo 'Wal-e base restore completed. Attmepting WAL restore'
-	cat > ${PG_DATA}/recovery.conf <<-EOCONF
-		restore_command = 'envdir $WALE_ENVDIR wal-e wal-fetch --prefetch=16 %f %p'
-		recovery_target_timeline = latest
-	EOCONF
+	if [[ -f ${PG_DATA}/postgresql.conf.backup ]]; then
+		echo 'Wal-e base restore completed. Attmepting WAL restore'
+		
+		recovery_conf
 
-	echo 'recovery.conf file written'
+		echo 'recovery.conf file written'
 
-	chown postgres:postgres ${PG_DATA}/recovery.conf
-	ls $PG_DATA
+		chown postgres:postgres ${PG_DATA}/recovery.conf
+		ls $PG_DATA
 
 
-	#echo '\n # postgresql.auto.conf \n'
-	#cat ${PG_DATA}/postgresql.auto.conf
+		#echo '\n # postgresql.auto.conf \n'
+		#cat ${PG_DATA}/postgresql.auto.conf
 
-	#echo '\n # postgresql.base.conf \n'
-	#cat ${PG_DATA}/postgresql.base.conf
+		#echo '\n # postgresql.base.conf \n'
+		#cat ${PG_DATA}/postgresql.base.conf
 
-	#echo '\n # postgresql.base.conf.backup \n'
-	#cat ${PG_DATA}/postgresql.base.conf.backup
+		#echo '\n # postgresql.base.conf.backup \n'
+		#cat ${PG_DATA}/postgresql.base.conf.backup
 
-	#echo '\n # postgresql.conf.backup \n'
-	#cat ${PG_DATA}/postgresql.conf.backup
+		#echo '\n # postgresql.conf.backup \n'
+		#cat ${PG_DATA}/postgresql.conf.backup
 
-	#echo '\n\n'
+		#echo '\n\n'
 
-	cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
-	cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
+		cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
+		cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
 
-	chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
+		sed -i.bak '/archive_command/d' ${PG_DATA}/postgresql.conf
+
+		chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
+
+
+		
+
+		gosu postgres pg_ctl start -D ${PG_DATA}
+
+		while [[ -f ${PG_DATA}/recovery.conf ]]; do
+			echo 'Waiting for recovery to complete'
+			sleep 5
+		done
+
+		echo 'Recovery should be complete. Shutting down postgres'
+
+		gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
+
+		echo 'ready for patroni to take over'
+	else
+		echo 'No basebackup restored. Letting patroni take over and initialize database'
+	fi
 	
-
-	gosu postgres pg_ctl start -D ${PG_DATA}
-
-	while [[ -f ${PG_DATA}/recovery.conf ]]; do
-		echo 'Waiting for recovery to complete'
-		sleep 15
-	done
-
-	echo 'Recovery should be complete. Shutting down postgres'
-
-	gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
-	
-	echo 'ready for patroni to take over'
 
 else
 	exec "$@"

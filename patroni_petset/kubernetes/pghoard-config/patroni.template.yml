@@ -16,8 +16,8 @@ bootstrap:
         archive_mode: 'on'
         archive_timeout: 300s
         archive_command: envdir /opt/wale/ wal-e wal-push %p
-      #recovery_conf:
-      #  restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
+      recovery_conf:
+        restore_command: envdir /opt/wale/ wal-e wal-fetch --prefetch=16 %f %p
       #  recovery_target_timeline: latest
       #  recovery_target_action: promote
       use_pg_rewind: true

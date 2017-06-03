@@ -96,64 +96,70 @@ elif [ "$1" = 'backup' ]; then
 
 
 elif [ "$1" = 'restore' ]; then
-	echo 'Attempting to restore basebackup with WAL-E'
-	if [ "$IGNORE_WAL_BASEBACKUP_MISSING" ]; then
-		echo 'IGNORE_WAL_BASEBACKUP_MISSING found, checking for basebackup but will continue if missing'
-		echo 'Remove IGNORE_WAL_BASEBACKUP_MISSING to require restore to be successful'
-		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST || true
-	else
-		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST
-	fi
-	
-	if [[ -f ${PG_DATA}/postgresql.conf.backup ]]; then
-		echo 'Wal-e base restore completed. Attmepting WAL restore'
+	if [[ "$POD_NAME" == *"-0" ]]; then
+		echo "First pod in the set, so lets try to restore"
 		
-		recovery_conf
-
-		echo 'recovery.conf file written'
-
-		chown postgres:postgres ${PG_DATA}/recovery.conf
-		ls $PG_DATA
-
-
-		#echo '\n # postgresql.auto.conf \n'
-		#cat ${PG_DATA}/postgresql.auto.conf
-
-		#echo '\n # postgresql.base.conf \n'
-		#cat ${PG_DATA}/postgresql.base.conf
-
-		#echo '\n # postgresql.base.conf.backup \n'
-		#cat ${PG_DATA}/postgresql.base.conf.backup
-
-		#echo '\n # postgresql.conf.backup \n'
-		#cat ${PG_DATA}/postgresql.conf.backup
-
-		#echo '\n\n'
-
-		cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
-		cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
-
-		sed -i.bak '/archive_command/d' ${PG_DATA}/postgresql.conf
-
-		chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
-
-
+		echo 'Attempting to restore basebackup with WAL-E'
+		if [ "$IGNORE_WAL_BASEBACKUP_MISSING" ]; then
+			echo 'IGNORE_WAL_BASEBACKUP_MISSING found, checking for basebackup but will continue if missing'
+			echo 'Remove IGNORE_WAL_BASEBACKUP_MISSING to require restore to be successful'
+			gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST || true
+		else
+			gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST
+		fi
 		
+		if [[ -f ${PG_DATA}/postgresql.conf.backup ]]; then
+			echo 'Wal-e base restore completed. Attmepting WAL restore'
+			
+			recovery_conf
 
-		gosu postgres pg_ctl start -D ${PG_DATA}
+			echo 'recovery.conf file written'
 
-		while [[ -f ${PG_DATA}/recovery.conf ]]; do
-			echo 'Waiting for recovery to complete'
-			sleep 5
-		done
+			chown postgres:postgres ${PG_DATA}/recovery.conf
+			ls $PG_DATA
 
-		echo 'Recovery should be complete. Shutting down postgres'
 
-		gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
+			#echo '\n # postgresql.auto.conf \n'
+			#cat ${PG_DATA}/postgresql.auto.conf
 
-		echo 'ready for patroni to take over'
+			#echo '\n # postgresql.base.conf \n'
+			#cat ${PG_DATA}/postgresql.base.conf
+
+			#echo '\n # postgresql.base.conf.backup \n'
+			#cat ${PG_DATA}/postgresql.base.conf.backup
+
+			#echo '\n # postgresql.conf.backup \n'
+			#cat ${PG_DATA}/postgresql.conf.backup
+
+			#echo '\n\n'
+
+			cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
+			cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
+
+			sed -i.bak '/archive_command/d' ${PG_DATA}/postgresql.conf
+
+			chown postgres:postgres ${PG_DATA}/pg_hba.conf ${PG_DATA}/postgresql.conf
+
+
+			
+
+			gosu postgres pg_ctl start -D ${PG_DATA}
+
+			while [[ -f ${PG_DATA}/recovery.conf ]]; do
+				echo 'Waiting for recovery to complete'
+				sleep 5
+			done
+
+			echo 'Recovery should be complete. Shutting down postgres'
+
+			gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
+
+			echo 'ready for patroni to take over'
+		else
+			echo 'No basebackup restored. Letting patroni take over and initialize database'
+		fi
 	else
-		echo 'No basebackup restored. Letting patroni take over and initialize database'
+		echo "Not the first pod, letting patroni have it's way to manage restore"
 	fi
 	
 

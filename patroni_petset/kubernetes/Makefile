@@ -2,12 +2,14 @@ config:
 	kubectl create configmap patroni-pghoard --from-file=pghoard-config/patroni.template.yml --from-file=pghoard-config/pghoard_restore.py --from-file=pghoard-config/pghoard.json --from-file=pghoard-config/recovery.conf
 	kubectl create secret generic patroni-wale --from-file=wal-e-config/google-wale.json
 	kubectl create -f wale-config.yaml
+	kubectl create -f pghoard-secret.yaml
 
 delete:
 	kubectl delete -f ps-patroni-ephemeral.yaml -f etcd.yaml
 	kubectl delete configmap patroni-pghoard wale-config
 	kubectl delete secret patroni-wale
 	kubectl delete -f sec-patroni.yaml
+	kubectl delete -f pghoard-secret.yaml
 
 sets: 
 	kubectl create -f pghoard.yaml -f etcd.yaml -f ps-patroni-ephemeral.yaml
@@ -28,5 +30,5 @@ services:
 	kubectl create -f svc-patroni-master
 	kubectl create -f svc-patroni-read
 
-e:
-	echo \"recovery_target_timeline = \'latest\' \ntrigger_file = \'/pgdata/data/trigger_file\'\nrestore_command = \'pghoard_postgres_command --mode restore --port 16000 --site default --output %p --xlog %f\'\" > /pgdata/data/recovery.conf; 
+status:
+	kubectl exec patroni-0 -c patroni -- patronictl --config-file /etc/patroni/patroni.yml list patroni01

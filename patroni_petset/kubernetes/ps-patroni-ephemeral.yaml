@@ -43,6 +43,19 @@ spec:
               {
                 "name": "PG_DATA",
                 "value": "/pgdata/data"
+              },
+              {
+                "name": "VERBOSE_ENTRYPOINT",
+                "value": "true"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
               }
             ],
             "volumeMounts": [

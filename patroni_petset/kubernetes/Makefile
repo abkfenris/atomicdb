@@ -6,7 +6,6 @@ config:
 
 delete:
 	kubectl delete -f ps-patroni-ephemeral.yaml
-	# -f etcd.yaml
 	kubectl delete -f etcd-cluster.yaml
 	kubectl delete configmap patroni-pghoard wale-config
 	kubectl delete secret patroni-wale
@@ -47,5 +46,7 @@ gke-create:
 gke-delete:
 	gcloud container clusters delete test-cluster
 
-helm:
+init:
 	helm init
+	sleep 10
+	helm install --name etcd-operator stable/etcd-operator

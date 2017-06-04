@@ -150,7 +150,7 @@ spec:
               apiVersion: v1
               fieldPath: status.podIP
         - name: ETCD_HOST
-          value: etcd.$(POD_NS).svc.cluster.local
+          value: etcd-patroni-cluster.$(POD_NS).svc.cluster.local
         ports:
         - containerPort: 8008
         - containerPort: 5432

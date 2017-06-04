@@ -18,8 +18,6 @@ bootstrap:
         archive_command: envdir /opt/wale/ wal-e wal-push %p
       recovery_conf:
         restore_command: envdir /opt/wale/ wal-e wal-fetch --prefetch=16 %f %p
-      #  recovery_target_timeline: latest
-      #  recovery_target_action: promote
       use_pg_rewind: true
       use_slots: true
     retry_timeout: 5
@@ -54,12 +52,7 @@ postgresql:
     on_start: /scripts/callback_role.py
     on_stop: /scripts/callback_role.py
   connect_address: ${LOOKUP}:5432
-  #recovery_conf:
-  #  restore_command: pghoard_postgres_command --mode restore --site default --host ${PGHOARD_SERVICE_HOST} --xlog %f --output %p
-  #  recovery_target_timeline: latest
-  #  recovery_target_action: promote
   create_replica_method:
-  #- pghoard
   - basebackup
   pghoard:
     command: python3 /opt/pghoard/pghoard_restore.py

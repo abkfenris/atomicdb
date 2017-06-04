@@ -14,9 +14,11 @@ fi
 # Set $IGNORE_WAL_BASEBACKUP_MISSING for first initialization of the database, but then remove it from further runs
 base_backup_restore () {
 	echo 'Attempting to restore basebackup with WAL-E'
+	echo ""
 	if [ "$IGNORE_WAL_BASEBACKUP_MISSING" ]; then
-		echo 'IGNORE_WAL_BASEBACKUP_MISSING found, checking for basebackup but will continue if missing'
+		echo 'IGNORE_WAL_BASEBACKUP_MISSING found, checking for basebackup but will continue if missing.'
 		echo 'Remove IGNORE_WAL_BASEBACKUP_MISSING to require restore to be successful'
+		echo ""
 		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST || true
 	else
 		gosu postgres envdir $WALE_ENVDIR wal-e backup-fetch $PG_DATA LATEST
@@ -25,7 +27,8 @@ base_backup_restore () {
 
 # After basebackup restore, conf files are in the wrong locations
 move_clean_chown_config () {
-	echo 'Copying postgresql.conf and pg_hba.conf back to their normal locations, and changing owner'
+	echo 'Copying postgresql.conf and pg_hba.conf back to their normal locations, and changing owner.'
+	echo ""
 	cp ${PG_DATA}/postgresql.conf.backup ${PG_DATA}/postgresql.conf
 	cp ${PG_DATA}/pg_hba.conf.backup ${PG_DATA}/pg_hba.conf
 
@@ -50,6 +53,7 @@ recovery_conf () {
 # Run postgres until the wal is completely restored
 wal_restore () {
 	echo 'Starting PostgreSQL server to restore to latest point in WAL'
+	echo ""
 	gosu postgres pg_ctl start -D ${PG_DATA}
 
 	while [[ -f ${PG_DATA}/recovery.conf ]]; do
@@ -57,11 +61,16 @@ wal_restore () {
 		sleep 5
 	done
 
+	echo ""
 	echo 'Recovery should be complete. Shutting down Postgres'
+	echo ""
 
 	gosu postgres pg_ctl stop -m fast -D ${PG_DATA}
 	echo 'Postgres server is shut down'
+	echo ""
 }
+
+
 
 if [ "$1" = 'postgres' -o "$1" = 'patroni' ]; then
 	#set some derived variables
@@ -99,16 +108,6 @@ if [ "$1" = 'postgres' -o "$1" = 'patroni' ]; then
 	gosu postgres patroni /etc/patroni/patroni.yml
 
 elif [ "$1" = 'backup' ]; then
-
-	# need to do something like
-	# gosu postgres psql -h localhost -c 'SELECT pg_is_in_recovery();'
-	# and see if this is currently the leader
-	#
-	# wal-e cannot take a basebackup from a follower
-	#
-	# probably should setup cron on all pods
-	# and have an additional script that cron calls and does the check
-
 	
 	echo 'Setting up backup cron job'
 
@@ -139,25 +138,34 @@ elif [ "$1" = 'backup' ]; then
 
 
 elif [ "$1" = 'restore' ]; then
+	echo "Restoring base backup"
+	echo ""
+	base_backup_restore
+
+	if [[ -f ${PG_DATA}/postgresql.conf.backup ]]; then
+		echo 'Wal-e base restore completed'
+		echo ""
+		move_clean_chown_config
+	fi
+
 	if [[ "$POD_NAME" == *"-0" ]]; then
-		echo "First pod in the set, so lets try to restore"
-		
-		base_backup_restore
+		echo "First pod in the set, so lets try to restore WAL"
+		echo ""
 		
 		if [[ -f ${PG_DATA}/postgresql.conf.backup ]]; then
-			echo 'Wal-e base restore completed'
-			move_clean_chown_config
-			
 			echo 'Attempting WAL restore'
+			echo ""
 			recovery_conf
 			wal_restore
 
-			echo 'ready for patroni to take over'
+			echo 'Ready for patroni to take over'
 		else
 			echo 'No basebackup restored. Letting patroni take over and initialize database'
 		fi
 	else
-		echo "Not the first pod, letting patroni have it's way to manage restore"
+		echo "Not the first pod, letting patroni have it's way to finish managing restore."
+		echo "If pod is behing on WAL, then patroni will use the recover_command after attempting"
+		echo "pg_rewind to make sure both leader and replica systems are on the correct timeline."
 	fi
 	
 

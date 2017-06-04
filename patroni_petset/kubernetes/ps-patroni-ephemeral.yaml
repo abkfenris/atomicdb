@@ -45,10 +45,6 @@ spec:
                 "value": "/pgdata/data"
               },
               {
-                "name": "VERBOSE_ENTRYPOINT",
-                "value": "true"
-              },
-              {
                 "name": "POD_NAME",
                 "valueFrom": {
                   "fieldRef": {
@@ -165,10 +161,7 @@ spec:
           name: patroni-config
           readOnly: true
         - mountPath: /opt/pghoard
-          name: pghoard-config
-          readOnly: true
-        - mountPath: /tmp/pghoard
-          name: pghoard-secret
+          name: patroni-template
           readOnly: true
         - mountPath: /tmp/wale
           name: wale-secret
@@ -185,21 +178,12 @@ spec:
           name: wale-config
       - name: pgdata
         emptyDir: {}
-      - name: pghoard-config
+      - name: patroni-template
         configMap:
-          name: patroni-pghoard
+          name: patroni-template
           items:
-          - key: pghoard.json
-            path: pghoard.json
           - key: patroni.template.yml
             path: patroni.template.yml
-          - key: pghoard_restore.py
-            path: pghoard_restore.py
-          - key: recovery.conf
-            path: recovery.conf
-      - name: pghoard-secret
-        secret:
-          secretName: pghoard-google
       - name: wale-secret
         secret:
           secretName: patroni-wale

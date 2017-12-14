@@ -1,5 +1,5 @@
 PyYAML==3.12
-boto==2.46.1
+boto==2.48.0
 cffi==0.8.6
 chardet==2.3.0
 click==6.7

@@ -1,4 +1,4 @@
-PyYAML==3.11
+PyYAML==3.12
 boto==2.46.1
 cffi==0.8.6
 chardet==2.3.0

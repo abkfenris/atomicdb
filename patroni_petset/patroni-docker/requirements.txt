@@ -18,7 +18,7 @@ ply==3.10
 prettytable==7
 psycopg2==2.7.3.2
 pyasn1==0.4.2
-pyasn1-modules==0.0.8
+pyasn1-modules==0.2.1
 pycparser==2.10
 python-consul==0.7.0
 python-dateutil==2.6.0

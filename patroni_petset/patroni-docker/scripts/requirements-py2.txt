@@ -11,4 +11,4 @@ python-consul==0.7.2
 click>=4.1
 prettytable>=0.7
 tzlocal==1.5.1
-python-dateutil
+python-dateutil==2.6.1

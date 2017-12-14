@@ -8,7 +8,7 @@ cryptography==2.1.4
 dnspython==1.15.0
 dnspython3==1.15.0
 google-api-python-client==1.6.4
-html5lib==0.999
+html5lib==1.0.1
 httplib2==0.10.3
 kazoo==2.2.1
 oauth2client<4.0.0

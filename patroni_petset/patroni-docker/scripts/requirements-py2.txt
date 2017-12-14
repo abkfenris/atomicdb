@@ -1,14 +1,14 @@
-boto
-dnspython
-mock
+boto==2.48.0
+dnspython==1.15.0
+mock==2.0.0
 psycopg2>=2.6.1
-PyYAML
-requests
+PyYAML==3.12
+requests==2.18.4
 six >= 1.7
-kazoo==2.2.1
-python-etcd==0.4.3
-python-consul==0.6.1
+kazoo==2.4.0
+python-etcd==0.4.5
+python-consul==0.7.2
 click>=4.1
 prettytable>=0.7
-tzlocal
-python-dateutil
+tzlocal==1.5.1
+python-dateutil==2.6.1

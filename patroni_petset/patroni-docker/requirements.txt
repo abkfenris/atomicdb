@@ -31,4 +31,4 @@ six==1.11.0
 tzlocal==1.5.1
 uritemplate==3.0.0
 urllib3==1.22
-wheel==0.24.0
+wheel==0.30.0

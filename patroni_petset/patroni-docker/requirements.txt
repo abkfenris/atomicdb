@@ -22,7 +22,7 @@ pyasn1-modules==0.2.1
 pycparser==2.18
 python-consul==0.7.2
 python-dateutil==2.6.1
-python-etcd==0.4.3
+python-etcd==0.4.5
 python-snappy==0.5
 pytz==2016.10
 requests==2.4.3

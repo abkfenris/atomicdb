@@ -24,7 +24,7 @@ python-consul==0.7.2
 python-dateutil==2.6.1
 python-etcd==0.4.5
 python-snappy==0.5.1
-pytz==2016.10
+pytz==2017.3
 requests==2.4.3
 rsa==3.4.2
 six==1.8.0

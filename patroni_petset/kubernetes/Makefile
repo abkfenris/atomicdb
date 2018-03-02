@@ -1,7 +1,7 @@
 config:
 	kubectl create -f sec-patroni.yaml
 	kubectl create configmap patroni-template --from-file=configs/patroni.template.yml
-	kubectl create secret generic patroni-wale --from-file=wal-e-config/google-wale.json
+	kubectl create secret generic patroni-wale --from-file=configs/google-wale.json
 	kubectl create -f wale-config.yaml
 
 delete:
@@ -10,6 +10,8 @@ delete:
 	kubectl delete configmap patroni-template wale-config
 	kubectl delete secret patroni-wale
 	kubectl delete -f sec-patroni.yaml
+	kubectl delete -f svc-patroni-master.yaml
+	kubectl delete -f svc-patroni-read.yaml
 
 sets: 
 	kubectl create -f pghoard.yaml -f etcd.yaml -f ps-patroni-ephemeral.yaml
@@ -24,11 +26,11 @@ patroni:
 	
 	kubectl create -f ps-patroni-ephemeral.yaml
 
-all: etcd-cluster config patroni
+all: etcd-cluster config patroni services
 
 services:
-	kubectl create -f svc-patroni-master
-	kubectl create -f svc-patroni-read
+	kubectl create -f svc-patroni-master.yaml
+	kubectl create -f svc-patroni-read.yaml
 
 status:
 	kubectl exec patroni-0 -c patroni -- patronictl --config-file /etc/patroni/patroni.yml list patroni01

@@ -26,6 +26,19 @@ kubectl create -f etcd.yaml
 
 Using etcd operator:
 
+Let's first make our cluster definition.
+
+```yaml
+# etcd-cluster.yaml
+apiVersion: "etcd.coreos.com/v1beta1"
+kind: "Cluster"
+metadata:
+  name: "etcd-patroni-cluster"
+spec:
+  size: 3
+  version: "3.1.8"
+```
+
 ```shell
 # if helm tiller isn't already deployed to the cluster
 helm init
@@ -49,26 +62,47 @@ kubectl create -f sec-patroni.yaml
 Now we can create our own patroni.yml template and include it in a config map
 
 ```
-kubectl create configmap patroni-template --from-file=
+kubectl create configmap patroni-template --from-file=configs/patroni.template.yml
+```
 
+For this example, I'm going to use a Google Storage account, so I'll set up it's needed info.
 
-Create the pghoard and patroni configs and secrets. 
-Google key for service account which also needs to explicitly be given permission to write to the bucket.
+The first step is to create a [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts/) that WAL-E will use. Make sure to save the JSON.
+
+I've put it in configs/google-wale.json
+
+We'll create a secret to hold that file for WAL-E to have credentials.
 
 ```
-kubectl create -f pghoard-patroni-config.yaml -f pghoard-secret.yaml
+kubectl create secret generic patroni-wale --from-file=configs/google-wale.json
+```
+
+Now in [Google Storage](https://console.cloud.google.com/storage/browser) create your bucket. Make sure to give your service user permissions to write to the bucket.
+
+Now we need to create a yaml config that contains the info WAL-E uses to run.
+
+```yaml
+# wale-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wale-config
+data:
+  WALE_GS_PREFIX: gs://my.bucket.com/server
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/wale/google-wale.json
+  PGHOST: localhost
+```
+Save that as `wale-config.yaml` and we can load that config up.
+
+```
+kubectl create -f wale-config.yaml
 ```
 
 ### Patroni
 
-Start the pghoard statefulset
+Now we can create our patroni cluster.
 
-```
-kubectl create -f pghoard.yaml
-```
 
-Third, create the PostgreSQL PetSet.  Depending on your setup, you can
-play with increasing the number of replicas: It also probably doesn't work right now.
 
 ```
 kubectl create -f ps-patroni-ephemeral
@@ -77,8 +111,8 @@ kubectl create -f ps-patroni-ephemeral
 Finally, create the write and load-balanced read services:
 
 ```
-kubectl create -f svc-patroni-master
-kubectl create -f svc-patroni-read
+kubectl create -f svc-patroni-master.yaml
+kubectl create -f svc-patroni-read.yaml
 ```
 
 These services are currently internal-only using ClusterIP.  You can tinker

@@ -129,7 +129,7 @@ spec:
               name: patroni
               key: password-standby
         - name: PATRONI_TEMPLATE_PATH
-          value: /opt/pghoard/patroni.template.yml
+          value: /opt/patroni/patroni.template.yml
         - name: POD_NS
           valueFrom:
             fieldRef:
@@ -160,7 +160,7 @@ spec:
         - mountPath: /tmp/patroni
           name: patroni-config
           readOnly: true
-        - mountPath: /opt/pghoard
+        - mountPath: /opt/patroni
           name: patroni-template
           readOnly: true
         - mountPath: /tmp/wale
